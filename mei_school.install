@@ -1,0 +1,600 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the mei_school module.
+ */
+
+/**
+ * Implementation of hook_install()
+ */
+function mei_school_install() {
+  $t = get_t();
+  variable_set('mei_school_c_year', (date("m") < 9) ? date("Y") : date("Y") + 1);
+
+  //???nec?  
+  //add "Student Withdraw Reasons" as taxonomy terms
+  $vocab_withd_id = db_insert('taxonomy_vocabulary')
+    ->fields(
+      array(
+        'name' => 'Student Withdraw Reasons',
+        'machine_name' => 'student_withdraw_reasons',
+        'module' => 'mei_school',
+      )
+    )
+    ->execute();
+  $withdraw_r = array (
+    t('Graduation'),
+    t('Discipline Problems'),
+    t('Transfer'),
+    t('Personal Problems'),
+    t('Financial Problems'),
+  );
+  for($i = 0; count($withdraw_r) < $i; $i++) {
+    $tid = db_insert('taxonomy_term_data')
+      ->fields(
+        array(
+         'vid' => $vocab_withd_id,
+         'name' => $withdraw_r[$i],
+         'format' => 2,
+       )
+     )
+     ->execute();
+     db_insert('taxonomy_term_hierarchy')->fields(array('tid' => $tid))->execute();
+     if ($i == 0) {
+      variable_set('mei_school_graduation_tid', $tid);
+    }
+  }
+  variable_set('mei_school_withd', $vocab_withd_id);
+
+  //create roles
+  $roles = array(
+    'student' => t('student'),
+    'parent'  => t('parent'),
+    'staff'   => t('staff'),
+  );
+  //inserting to roles table
+  foreach ($roles as $name => $role) {
+    $proles[$name] = array(
+      'name' => $name, 
+      'rid' => db_insert('role')->fields(array('name' => $role))->execute()
+    );
+  }
+  /*//recording as variable for further use incase of translation
+  variable_set('mei_school_predefined_roles', $proles);
+*/
+ 
+  drupal_set_message(t('Roles added: student, parent, staff'));
+  drupal_set_message(t('Visit !conf page before start.', array('!conf' => l('configuration', 'admin/config/mei_school'))));
+}
+
+/**
+ * Implementation of hook_uninstall()
+ */
+function mei_school_uninstall() {
+  variable_del('mei_school_c_year');
+  variable_del('mei_school_st_id_conf');
+  variable_del('mei_school_num_range');
+  variable_del('mei_school_num_range_staff');
+  variable_del('mei_school_std_id_len');
+//  variable_del('mei_school_relations');
+  variable_del('mei_school_withd');
+  variable_del('mei_school_s_year');
+//  variable_del('mei_school_resides_with');
+  variable_del('mei_school_job_types');
+  db_delete('role')
+    ->condition('name', array(t('student'), t('parent'), t('staff')), 'IN')
+    ->execute();
+  drupal_set_message(t('Roles removed: student, parent, staff'));
+}
+
+/**
+ * Implementation of hook_schema()
+ */
+function mei_school_schema() {
+  $schema['mei_school_student_main'] = array(
+    'description' => 'Stores school information of students.',
+    'fields' => array(
+      'school_no' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'disp-width' => '11',
+      ),
+      'academic_year' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '4',
+      ),
+      'level' => array(
+        'type' => 'varchar',
+        'length' => '24',
+        'not null' => FALSE,
+      ),
+      'enrollment_date' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => TRUE,
+      ),
+      'withdraw_date' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => FALSE,
+      ),
+      'scholarship' => array(
+        'type' => 'varchar',
+        'length' => '32',
+      ),
+      'scholarship_description' => array(
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => FALSE,
+      ),
+      'notes' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('school_no', 'academic_year'),
+  );
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  //=============================================
+  
+  
+  
+  $schema['mei_school_student_main'] = array(
+    'description' => 'Stores school information of students.',
+    'fields' => array(
+      'school_no' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'disp-width' => '11',
+      ),
+      'academic_year' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '4',
+      ),
+      'level' => array(
+        'type' => 'varchar',
+        'length' => '24',
+        'not null' => FALSE,
+      ),
+      'enrollment_date' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => TRUE,
+      ),
+      'withdraw_date' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => FALSE,
+      ),
+      'scholarship' => array(
+        'type' => 'varchar',
+        'length' => '32',
+      ),
+      'scholarship_description' => array(
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => FALSE,
+      ),
+      'notes' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('school_no', 'academic_year'),
+  );
+  /*$schema['mei_school_withdrawal'] = array(
+    'description' => 'Stores withdrawal information of withdrew students.',
+    'fields' => array(
+      'school_no' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'academic_year' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '4',
+      ),
+      'reason' => array(
+        'type' => 'int',
+        'default' => NULL,
+      ),
+      'given_documents' => array(
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => FALSE,
+      ),
+      'debt_of_student_left' => array(
+        'type' => 'float',
+        'not null' => FALSE,
+      ),
+      'notes' => array(
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('school_no', 'academic_year'),
+    'indexes' => array('school_no' => array('school_no')),
+  ); */
+  $schema['mei_school_staff_main'] = array(
+    'description' => 'Stores staff information.',
+    'fields' => array(
+      'staff_no' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'disp-width' => '11',
+      ),
+      'academic_year' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '4',
+      ),
+      'branch' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'graduation' => array(
+        'type' => 'varchar',
+        'length' => '100',
+        'not null' => FALSE,
+      ),
+      'start_date' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => TRUE,
+      ),
+      'experience_area' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'contract_type' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'withdraw_date' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => FALSE,
+      ),
+      'notes' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('staff_no', 'academic_year'),
+  );
+  /*
+  $schema['mei_school_alumni'] = array(
+    'description' => 'Stores alumni information.',
+    'fields' => array(
+      'school_no' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'graduation_year' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'class' => array(
+        'type' => 'varchar',
+        'length' => '1',
+        'not null' => TRUE,
+      ),
+      'current_country' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => TRUE,
+       ),
+      'current_city' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'spouse_name' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'number_of_childeren' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+        'disp-width' => '2',
+       ),
+      'university_attended_1_name' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+        ),
+      'university_attended_1_Place' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_1_program_name' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_1_year_of_graduation' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_1_degree_obtained' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_2_name' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_2_place' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_2_program_name' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_2_year_of_graduation' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'university_attended_2_degree_obtained' => array(
+        'type' => 'varchar',
+        'length' => '50',
+        'not null' => FALSE,
+      ),
+      'notes' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('school_no'),
+  ); */
+  
+  /*
+  $schema['mei_school_users_portraits'] = array(
+    'description' => 'Stores portrait photos of users.',
+    'fields' => array(
+      'pid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'disp-width' => '10',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'disp-width' => '10',
+      ),
+      'photo' => array(
+        'type' => 'blob',
+        'not null' => TRUE,
+      ),
+      'image_md5' => array(
+        'type' => 'varchar',
+        'length' => '32',
+        'not null' => FALSE,
+      ),
+      'upload_date' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'disp-width' => '11',
+      ),
+    ),
+    'primary key' => array('pid'),
+    'indexes' => array('uid' => array('uid')),
+  );
+  */
+  $schema['mei_school_users_identities'] = array(
+    'description' => 'Stores identity information of users.',
+    'fields' => array(
+      'vid' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'title' => array(
+        'type' => 'varchar',
+        'length' => '24',
+        'not null' => FALSE,
+      ),
+      'first_name' => array(
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => TRUE,
+      ),
+      'surname' => array(
+        'type' => 'varchar',
+        'length' => '64',
+        'not null' => TRUE,
+      ),
+
+      'dob' => array(
+        'type' => 'varchar', //type:date is not inuse anymore in D7
+        'length' => '10', //yyyy-mm-dd
+        'not null' => TRUE,
+      ),
+     
+      'home_address' => array(  //handled in civi
+        'type' => 'varchar',
+        'length' => '128',
+        'not null' => FALSE
+      ),
+      'updater_uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'update_time' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'disp-width' => '11',
+      ),
+      'update_approved' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 0,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('vid'),
+    'indexes' => array('uid' => array('uid')),
+  );
+  return $schema;
+}
+
+function mei_school_update_7100() {
+  db_change_field('mei_school_users_identities', 'name', 'names', array(
+    'type' => 'varchar',
+    'length' => '64',
+    'not null' => TRUE,
+  ));
+  db_drop_field('mei_school_users_identities', 'middle_name');
+  cache_clear_all();
+}
+
+function mei_school_update_7101() {
+  variable_del('mei_school_gender');
+  variable_del('mei_school_job_types');
+  db_change_field('mei_school_student_main', 'entrance_exam_result', 'entrance_exam_result', array(
+    'type' => 'varchar',
+    'length' => '32',
+  ));
+  $relations = variable_get('mei_school_relations');
+  $relations = str_replace("\r", '', $relations);
+  $relations = explode("\n", $relations);
+  //trim array values
+  array_walk($relations, 'trim');
+  //add "Student Relations" as taxonomy terms
+  $vocab_relations_id = db_insert('taxonomy_vocabulary')
+    ->fields(
+      array(
+        'name' => 'Student Relations',
+        'machine_name' => 'student_relations',
+        'module' => 'mei_school',
+      )
+    )
+    ->execute();
+  for($i = 0; $i < count($relations); $i++) {
+    $tid = db_insert('taxonomy_term_data')
+      ->fields(
+        array(
+          'vid' => $vocab_relations_id,
+          'name' => $relations[$i],
+          'format' => 2,
+          'weight' => $i,
+        )
+     )
+     ->execute();
+     db_insert('taxonomy_term_hierarchy')->fields(array('tid' => $tid))->execute();
+  }
+  variable_set('mei_school_relations', $vocab_relations_id);
+  
+  //add "Student Withdraw Reasons" as taxonomy terms
+  $reasons = variable_get('mei_school_withd');
+  $reasons = str_replace("\r", '', $reasons);
+  $reasons = explode("\n", $reasons);
+  //trim array values
+  array_walk($reasons, 'trim');
+  $vocab_withd_id = db_insert('taxonomy_vocabulary')
+    ->fields(
+      array(
+        'name' => 'Student Withdraw Reasons',
+        'machine_name' => 'student_withdraw_reasons',
+        'module' => 'mei_school',
+      )
+    )
+    ->execute();
+  for($i = 0; $i < count($reasons); $i++) {
+    $tid = db_insert('taxonomy_term_data')
+      ->fields(
+        array(
+          'vid' => $vocab_withd_id,
+          'name' => $reasons[$i],
+          'format' => 2,
+          'weight' => $i,
+        )
+     )
+     ->execute();
+     db_insert('taxonomy_term_hierarchy')->fields(array('tid' => $tid))->execute();
+     if ($i == 0) {
+      variable_set('mei_school_graduation_tid', $tid);
+    }
+  }
+  variable_set('mei_school_withd', $vocab_withd_id);
+
+  $result = db_query("SELECT id, relation FROM {mei_school_student_parents}")->fetchAllKeyed();
+  foreach ($result as $id => $name) {
+    $term = taxonomy_get_term_by_name($name);
+    db_update('mei_school_student_parents')
+      ->fields(array('relation' => key($term)))
+      ->condition('id', $id)
+      ->execute();
+  }
+  db_change_field('mei_school_student_parents', 'relation', 'relation', array(
+    'type' => 'int',
+    'default' => NULL,
+  ));
+
+  $result = db_query("SELECT * FROM {mei_school_withdrawal}");
+  foreach ($result as $data) {
+    $term = taxonomy_get_term_by_name($data->reason);
+    db_update('mei_school_withdrawal')
+      ->fields(array('reason' => key($term)))
+      ->condition('school_no', $data->school_no)
+      ->condition('academic_year', $data->academic_year)
+      ->execute();
+  }
+  db_change_field('mei_school_withdrawal', 'reason', 'reason', array(
+    'type' => 'int',
+    'default' => NULL,
+  ));
+  cache_clear_all();
+}
